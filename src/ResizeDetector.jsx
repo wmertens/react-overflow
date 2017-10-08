@@ -1,58 +1,99 @@
-import React, { Component, PropTypes } from 'react';
+import React, {Component, PropTypes} from 'react'
+import ResizeDetector from './ResizeDetector'
 
-const OBJECT_STYLE = {
-  display: 'block',
-  position: 'absolute',
-  top: 0,
-  left: 0,
-  height: '100%',
-  width: '100%',
-  overflow: 'hidden',
-  pointerEvents: 'none',
-  zIndex: -1,
-};
+export default class OverflowDetector extends Component {
+	static propTypes = {
+		onOverflowChange: PropTypes.func,
+		children: PropTypes.node,
+		style: PropTypes.object,
+		className: PropTypes.string,
+	}
 
-export default class ResizeDetector extends Component {
-  static propTypes = {
-    onResize: PropTypes.func.isRequired,
-  };
+	static defaultProps = {
+		style: {},
+	}
 
-  constructor(props) {
-    super(props);
-    this.state = {
-      isMounted: false,
-    };
-    this.setDOMElement = this.setDOMElement.bind(this);
-    this.handleLoad = this.handleLoad.bind(this);
-  }
+	constructor(props) {
+		super(props)
+		this.isOverflowed = false
+		this.domElement = null
+		this.scrollState = {
+			atTop: true,
+			atBottom: true,
+			atLeft: true,
+			atRight: true,
+		}
+		this.setDOMElement = this.setDOMElement.bind(this)
+		this.checkOverflow = this.checkOverflow.bind(this)
+		this.handleScroll = this.handleScroll.bind(this)
+	}
 
-  componentDidMount() {
-    this.setState({
-      isMounted: true,
-    });
-  }
+	componentDidMount() {
+		this.checkOverflow()
+	}
 
-  componentWillUnmount() {
-    this.domElement.contentDocument.defaultView.removeEventListener('resize', this.props.onResize);
-  }
+	componentDidUpdate() {
+		this.checkOverflow()
+	}
 
-  setDOMElement(domElement) {
-    this.domElement = domElement;
-  }
+	setDOMElement(domElement) {
+		this.domElement = domElement
+	}
 
-  handleLoad() {
-    this.domElement.contentDocument.defaultView.addEventListener('resize', this.props.onResize);
-  }
+	checkOverflow() {
+		const isOverflowed =
+			this.domElement.scrollWidth > this.domElement.clientWidth ||
+			this.domElement.scrollHeight > this.domElement.clientHeight
 
-  render() {
-    return (
-      <object
-        style={OBJECT_STYLE}
-        type="text/html"
-        data={this.state.isMounted ? 'about:blank' : null}
-        ref={this.setDOMElement}
-        onLoad={this.handleLoad}
-      />
-    );
-  }
+		if (isOverflowed !== this.isOverflowed) {
+			this.isOverflowed = isOverflowed
+			if (this.props.onOverflowChange) {
+				this.props.onOverflowChange(isOverflowed)
+			}
+			if (!isOverflowed) {
+				this.handleScroll()
+			}
+		}
+	}
+
+	handleScroll() {
+		const {
+			clientHeight,
+			clientWidth,
+			scrollTop,
+			scrollLeft,
+			scrollHeight,
+			scrollWidth,
+		} = this.domElement
+		const atTop = scrollTop === 0
+		const atBottom = scrollTop + clientHeight === scrollHeight
+		const atLeft = scrollLeft === 0
+		const atRight = scrollLeft + clientWidth === scrollWidth
+		const s = this.scrollState
+		if (
+			s.atTop !== atTop ||
+			s.atBottom !== atBottom ||
+			s.atLeft !== atLeft ||
+			s.atRight !== atRight
+		) {
+			const scrollState = {atTop, atBottom, atLeft, atRight}
+			this.scrollState = scrollState
+			this.props.onScrolled(scrollState)
+		}
+	}
+
+	render() {
+		const {style, className, children, onScrolled} = this.props
+		return (
+			<div
+				ref={this.setDOMElement}
+				style={{...style, position: 'relative'}}
+				className={className}
+				onScroll={this.isOverflowed && onScrolled && this.handleScroll}
+			>
+				{children}
+				<ResizeDetector onResize={this.checkOverflow} />
+			</div>
+		)
+	}
 }

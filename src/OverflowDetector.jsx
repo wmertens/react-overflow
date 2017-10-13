@@ -1,8 +1,14 @@
-import React, { Component, PropTypes } from 'react';
+import React, { Component } from 'react';
 import ResizeDetector from './ResizeDetector';
 
+let PropTypes
+try {
+  PropTypes = require('prop-types');
+  if (PropTypes.default) PropTypes = PropTypes.default;
+} catch (err) {}
+
 export default class OverflowDetector extends Component {
-  static propTypes = {
+  static propTypes = PropTypes && {
     onOverflowChange: PropTypes.func,
     children: PropTypes.node,
     style: PropTypes.object,

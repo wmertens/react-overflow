@@ -1,4 +1,10 @@
-import React, { Component, PropTypes } from 'react';
+import React, { Component } from 'react';
+
+let PropTypes
+try {
+  PropTypes = require('prop-types');
+  if (PropTypes.default) PropTypes = PropTypes.default;
+} catch (err) {}
 
 const OBJECT_STYLE = {
   display: 'block',
@@ -13,7 +19,7 @@ const OBJECT_STYLE = {
 };
 
 export default class ResizeDetector extends Component {
-  static propTypes = {
+  static propTypes = PropTypes && {
     onResize: PropTypes.func.isRequired,
   };
 

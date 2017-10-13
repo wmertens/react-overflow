@@ -17,8 +17,15 @@ export default class OverflowDetector extends Component {
     super(props);
     this.isOverflowed = false;
     this.domElement = null;
+    this.scrollState = {
+      atTop: true,
+      atBottom: true,
+      atLeft: true,
+      atRight: true,
+    };
     this.setDOMElement = this.setDOMElement.bind(this);
     this.checkOverflow = this.checkOverflow.bind(this);
+    this.handleScroll = this.handleScroll.bind(this);
   }
 
   componentDidMount() {
@@ -43,16 +50,48 @@ export default class OverflowDetector extends Component {
       if (this.props.onOverflowChange) {
         this.props.onOverflowChange(isOverflowed);
       }
+      if (!isOverflowed) {
+        this.handleScroll();
+      }
+    }
+  }
+
+  handleScroll() {
+    const {
+      clientHeight,
+      clientWidth,
+      scrollTop,
+      scrollLeft,
+      scrollHeight,
+      scrollWidth,
+    } = this.domElement;
+    const atTop = scrollTop === 0;
+    const atBottom = scrollTop + clientHeight === scrollHeight;
+    const atLeft = scrollLeft === 0;
+    const atRight = scrollLeft + clientWidth === scrollWidth;
+    const s = this.scrollState;
+    if (
+      s.atTop !== atTop ||
+      s.atBottom !== atBottom ||
+      s.atLeft !== atLeft ||
+      s.atRight !== atRight
+    ) {
+      const scrollState = { atTop, atBottom, atLeft, atRight };
+      this.scrollState = scrollState;
+      this.props.onScrolled(scrollState);
     }
   }
 
   render() {
-    const { style, className, children } = this.props;
+    const { style, className, children, onScrolled } = this.props;
+    const onScroll =
+      this.isOverflowed && onScrolled ? this.handleScroll : undefined;
     return (
       <div
         ref={this.setDOMElement}
         style={{ ...style, position: 'relative' }}
         className={className}
+        onScroll={onScroll}
       >
         {children}
         <ResizeDetector onResize={this.checkOverflow} />
